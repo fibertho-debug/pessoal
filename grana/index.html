@@ -508,6 +508,13 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
       <h2 style="font-family:'Fraunces',serif;">Ajustes</h2>
       <button class="modal-close" id="settingsCloseBtn" aria-label="Fechar">×</button>
     </div>
+    <div class="field-card" style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+      <div style="min-width:0;">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);">Conectado como</div>
+        <div id="accountEmail" class="num" style="font-size:14px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">—</div>
+      </div>
+      <button class="btn-secondary" id="logoutBtn" style="width:auto;flex-shrink:0;color:var(--expense);border-color:var(--expense-bg);">Sair</button>
+    </div>
     <div class="field-card">
       <h3 style="font-family:'Fraunces',serif;">Instalar na tela inicial</h3>
       <div class="empty-hint" style="padding:0 0 10px;text-align:left;">Assim o Grana abre igual um app, sem barra de endereço do navegador.</div>
@@ -545,10 +552,6 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
         </div>
       </div>
       <button class="btn-primary" id="gAddBtn">Criar grupo</button>
-    </div>
-    <div class="field-card">
-      <h3 style="font-family:'Fraunces',serif;">Conta</h3>
-      <button class="btn-secondary" id="logoutBtn" style="color:var(--expense);border-color:var(--expense-bg);">Sair da conta</button>
     </div>
   </div>
 </div>
@@ -1415,17 +1418,33 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
       host.appendChild(div);
     }
 
+    function openNewGroup(type){
+      document.getElementById('gTipo').value = type;
+      document.getElementById('gNome').value = '';
+      openModal('settingsOverlay');
+      setTimeout(function(){ document.getElementById('gNome').focus(); }, 50);
+    }
+
     function noGroupHint(label, type){
       var hint = document.createElement('div');
       hint.className = 'onboard-hint';
       hint.innerHTML = 'Nenhum grupo de <b>'+label+'</b> ainda. <button type="button" class="add-item-btn" style="margin-top:8px;">+ criar grupo de '+label.toLowerCase()+'</button>';
-      hint.querySelector('button').addEventListener('click', function(){
-        document.getElementById('gTipo').value = type;
-        document.getElementById('gNome').value = '';
-        openModal('settingsOverlay');
-        setTimeout(function(){ document.getElementById('gNome').focus(); }, 50);
-      });
+      hint.querySelector('button').addEventListener('click', function(){ openNewGroup(type); });
       host.appendChild(hint);
+    }
+
+    // Same visual language as "+ adicionar item em X" inside each group — creating
+    // a whole new group is the same kind of action one level up, so it gets the
+    // same dashed affordance instead of living only inside Ajustes.
+    function addGroupBtn(label, type){
+      var row = document.createElement('div');
+      row.className = 'add-item-row';
+      var btn = document.createElement('button');
+      btn.className = 'add-item-btn';
+      btn.textContent = '+ criar novo grupo de ' + label.toLowerCase();
+      btn.addEventListener('click', function(){ openNewGroup(type); });
+      row.appendChild(btn);
+      host.appendChild(row);
     }
 
     var incomeGroups = state.config.groups.filter(function(g){ return g.type === 'income'; });
@@ -1435,14 +1454,14 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
     incLabel.className = 'section-divider income';
     incLabel.textContent = 'Entradas';
     host.appendChild(incLabel);
-    if (incomeGroups.length) { incomeGroups.forEach(renderGroup); }
+    if (incomeGroups.length) { incomeGroups.forEach(renderGroup); addGroupBtn('Receita', 'income'); }
     else { noGroupHint('Receita', 'income'); }
 
     var expLabel = document.createElement('div');
     expLabel.className = 'section-divider expense';
     expLabel.textContent = 'Saídas';
     host.appendChild(expLabel);
-    if (expenseGroups.length) { expenseGroups.forEach(renderGroup); }
+    if (expenseGroups.length) { expenseGroups.forEach(renderGroup); addGroupBtn('Despesa', 'expense'); }
     else { noGroupHint('Despesa', 'expense'); }
   }
 
@@ -2054,6 +2073,7 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
     appRoot.hidden = false;
     document.getElementById('quickAddBtn').hidden = false;
     document.getElementById('tabbarRoot').hidden = false;
+    document.getElementById('accountEmail').textContent = session.user.email || '—';
     window.GranaApp.boot(makeDb(session.user.id));
   }
 
