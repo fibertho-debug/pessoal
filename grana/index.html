@@ -1047,8 +1047,15 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
   }
 
   var MODAL_IDS = ['confirmOverlay','promptOverlay','quickOverlay','settingsOverlay','cartaoOverlay','groupOverlay','dividaOverlay'];
+  // A close schedules el.hidden=true 200ms out (for the fade/slide to finish).
+  // Closing and immediately reopening the same modal (several buttons call
+  // cancelEditX() then toggleXForm(true) back-to-back, to reset the form) left
+  // that stale timer armed — it fired ~200ms after the reopen and yanked the
+  // just-opened modal shut again. Tracking and cancelling it on open fixes that.
+  var modalHideTimers = {};
   function openModal(id){
     var el = document.getElementById(id);
+    clearTimeout(modalHideTimers[id]);
     el.hidden = false;
     void el.offsetWidth; // force reflow so the class change below actually transitions
     el.classList.add('show');
@@ -1061,7 +1068,8 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
   function closeModal(id){
     var el = document.getElementById(id);
     el.classList.remove('show');
-    setTimeout(function(){ el.hidden = true; }, 200);
+    clearTimeout(modalHideTimers[id]);
+    modalHideTimers[id] = setTimeout(function(){ el.hidden = true; }, 200);
   }
   function anyModalOpen(){
     return MODAL_IDS.some(function(id){ return !document.getElementById(id).hidden; });
@@ -1525,11 +1533,22 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
         del.textContent = '×';
         del.title = 'Remover item da categoria';
         del.addEventListener('click', function(){
-          var msg = itemHasHistory(it.id)
-            ? 'Remover "'+it.name+'" desta categoria? O valor lançado nos meses já preenchidos continua salvo, só não aparece mais na lista.'
+          var hasHistory = itemHasHistory(it.id);
+          var msg = hasHistory
+            ? 'Remover "'+it.name+'" desta categoria? Os valores já lançados em meses anteriores continuam contando no saldo desses meses, só que como "'+it.name+' (não categorizado)" no extrato, em vez de sumirem da lista sem explicação.'
             : 'Remover "'+it.name+'" desta categoria? Nenhum valor foi lançado nele ainda.';
           confirmAction(msg, function(){
-            g.items = g.items.filter(function(x){ return x.id !== it.id; });
+            if (hasHistory) {
+              // Renamed + hidden instead of deleted: aggregation only sums items
+              // still present in config, so actually removing it would silently
+              // drop its value from every past month's total. Keeping it (marked
+              // as no-longer-categorized) preserves that history and still shows
+              // up honestly in old months' extrato.
+              it.name = it.name + ' (não categorizado)';
+              it.hidden = true;
+            } else {
+              g.items = g.items.filter(function(x){ return x.id !== it.id; });
+            }
             saveConfig();
             render();
             showToast('Item removido.');
