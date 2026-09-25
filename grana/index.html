@@ -375,15 +375,24 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
 <body>
 
 <div class="modal-overlay show" id="authOverlay" style="align-items:center;">
-  <div class="modal-sheet" style="max-width:360px;">
+  <div class="modal-sheet" style="max-width:360px;" id="authLoginSheet">
     <div class="modal-head"><h2 style="font-family:'Fraunces',serif;">Grana</h2></div>
     <div id="authError" class="empty-hint" style="display:none;color:var(--expense);padding:0 0 10px;text-align:left;"></div>
+    <div id="authNotice" class="empty-hint" style="display:none;color:var(--income);padding:0 0 10px;text-align:left;"></div>
     <label>E-mail</label>
     <input class="form-input" id="authEmail" type="email" autocomplete="username" style="margin-bottom:10px;">
     <label>Senha</label>
     <input class="form-input" id="authPassword" type="password" autocomplete="current-password">
     <button class="btn-primary" id="authLoginBtn">Entrar</button>
     <button class="btn-secondary" id="authSignupBtn" style="margin-top:8px;">Criar conta</button>
+    <button class="btn-ghost" id="authForgotBtn" style="margin-top:10px;width:100%;text-align:center;">Esqueci minha senha</button>
+  </div>
+  <div class="modal-sheet" style="max-width:360px;display:none;" id="authRecoverSheet">
+    <div class="modal-head"><h2 style="font-family:'Fraunces',serif;">Nova senha</h2></div>
+    <div id="authRecoverError" class="empty-hint" style="display:none;color:var(--expense);padding:0 0 10px;text-align:left;"></div>
+    <label>Nova senha</label>
+    <input class="form-input" id="authNewPassword" type="password" autocomplete="new-password">
+    <button class="btn-primary" id="authRecoverSaveBtn" style="margin-top:12px;">Salvar nova senha</button>
   </div>
 </div>
 
@@ -536,6 +545,10 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
         </div>
       </div>
       <button class="btn-primary" id="gAddBtn">Criar grupo</button>
+    </div>
+    <div class="field-card">
+      <h3 style="font-family:'Fraunces',serif;">Conta</h3>
+      <button class="btn-secondary" id="logoutBtn" style="color:var(--expense);border-color:var(--expense-bg);">Sair da conta</button>
     </div>
   </div>
 </div>
@@ -1834,6 +1847,12 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
     render();
   });
 
+  document.getElementById('logoutBtn').addEventListener('click', function(){
+    confirmAction('Sair da sua conta neste aparelho?', function(){
+      window.GranaAuth.signOut();
+    }, 'Sair');
+  });
+
   document.getElementById('wMes').value = state.wallet.mesInicial;
 
   onEnter('wSaldo','wSaveBtn'); onEnter('wReceber','wSaveBtn'); onEnter('wPagar','wSaveBtn'); onEnter('wMes','wSaveBtn');
@@ -2013,9 +2032,22 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
   var authOverlay = document.getElementById('authOverlay');
   var appRoot = document.getElementById('appRoot');
   var authError = document.getElementById('authError');
+  var authNotice = document.getElementById('authNotice');
+  var authLoginSheet = document.getElementById('authLoginSheet');
+  var authRecoverSheet = document.getElementById('authRecoverSheet');
+  var authRecoverError = document.getElementById('authRecoverError');
 
-  function showAuthError(msg){ authError.textContent = msg; authError.style.display = 'block'; }
-  function clearAuthError(){ authError.style.display = 'none'; }
+  function showAuthError(msg){ authError.textContent = msg; authError.style.display = 'block'; authNotice.style.display = 'none'; }
+  function showAuthNotice(msg){ authNotice.textContent = msg; authNotice.style.display = 'block'; authError.style.display = 'none'; }
+  function clearAuthError(){ authError.style.display = 'none'; authNotice.style.display = 'none'; }
+
+  function showLoginScreen(){
+    authOverlay.hidden = false; authOverlay.classList.add('show');
+    authLoginSheet.style.display = ''; authRecoverSheet.style.display = 'none';
+    appRoot.hidden = true;
+    document.getElementById('quickAddBtn').hidden = true;
+    document.getElementById('tabbarRoot').hidden = true;
+  }
 
   function startApp(session){
     authOverlay.hidden = true;
@@ -2048,6 +2080,53 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
       else { showAuthError('Conta criada. Confirme seu e-mail (verifique a caixa de entrada) e depois entre.'); }
     });
   });
+
+  document.getElementById('authForgotBtn').addEventListener('click', function(){
+    clearAuthError();
+    var email = document.getElementById('authEmail').value.trim();
+    if (!email) { showAuthError('Digite seu e-mail no campo acima primeiro.'); return; }
+    supa.auth.resetPasswordForEmail(email, {redirectTo: window.location.origin + window.location.pathname}).then(function(r){
+      if (r.error) { showAuthError(r.error.message); return; }
+      showAuthNotice('Enviamos um link de recuperação para ' + email + '. Abra-o para definir uma nova senha.');
+    });
+  });
+
+  document.getElementById('authRecoverSaveBtn').addEventListener('click', function(){
+    var pw = document.getElementById('authNewPassword').value;
+    if (!pw || pw.length < 6) {
+      authRecoverError.textContent = 'A senha precisa ter pelo menos 6 caracteres.';
+      authRecoverError.style.display = 'block';
+      return;
+    }
+    supa.auth.updateUser({password: pw}).then(function(r){
+      if (r.error) { authRecoverError.textContent = r.error.message; authRecoverError.style.display = 'block'; return; }
+      supa.auth.getSession().then(function(s){
+        authRecoverSheet.style.display = 'none';
+        authLoginSheet.style.display = '';
+        if (s.data.session) startApp(s.data.session); else showLoginScreen();
+      });
+    });
+  });
+
+  // A password-recovery link lands here with the recovery session already
+  // active; show the "set a new password" form instead of dropping the
+  // viewer straight into their data with an unknown/expired password.
+  supa.auth.onAuthStateChange(function(event){
+    if (event === 'PASSWORD_RECOVERY') {
+      authOverlay.hidden = false; authOverlay.classList.add('show');
+      authLoginSheet.style.display = 'none';
+      authRecoverSheet.style.display = '';
+      appRoot.hidden = true;
+      document.getElementById('quickAddBtn').hidden = true;
+      document.getElementById('tabbarRoot').hidden = true;
+    }
+  });
+
+  window.GranaAuth = {
+    signOut: function(){
+      supa.auth.signOut().then(function(){ window.location.reload(); });
+    }
+  };
 
   supa.auth.getSession().then(function(r){
     if (r.data.session) startApp(r.data.session);
