@@ -199,7 +199,6 @@ input,select{font-family:inherit;}
 .card-item-parcela{font-size:16px;margin-top:8px;}
 .progress-track{height:6px;background:var(--surface-2);border-radius:4px;margin-top:10px;overflow:hidden;}
 .progress-fill{height:100%;background:var(--accent);border-radius:4px;}
-.card-item-actions{display:flex;gap:6px;margin-top:8px;}
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
 .form-grid .full{grid-column:1 / -1;}
 label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);display:block;margin-bottom:4px;}
@@ -1647,33 +1646,30 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
         '<div class="card-item-parcela num" style="color:'+statusColor+';">'+statusText+'</div>'+
         '<div class="progress-track"><div class="progress-fill" style="width:'+pct+'%"></div></div>';
 
-      var actions = document.createElement('div');
-      actions.className = 'card-item-actions';
-
-      var editBtn = document.createElement('button');
-      editBtn.className = 'item-edit';
-      editBtn.textContent = '✎';
-      editBtn.title = 'Editar parcelamento';
-      editBtn.addEventListener('click', function(){ startEditCartao(c); });
-      actions.appendChild(editBtn);
-
-      var delBtn = document.createElement('button');
-      delBtn.className = 'item-del';
-      delBtn.textContent = '×';
-      delBtn.title = 'Remover parcelamento';
-      delBtn.addEventListener('click', function(){
-        var msg = quitado
-          ? 'Remover o parcelamento "'+c.nome+'"? Como ele já foi quitado, isso apaga o valor dele também dos meses passados onde já entrou na conta — o saldo desses meses muda.'
-          : 'Remover o parcelamento "'+c.nome+'"? Isso para de contar a parcela nos próximos meses.';
-        confirmAction(msg, function(){
-          deleteCartao(c.id);
-          if (state.editingCartaoId === c.id) cancelEditCartao();
-          showToast('Parcelamento removido.');
-        }, 'Remover');
+      // Same "⋯" pattern as a group's header actions, instead of two icons
+      // floating alone under an otherwise empty row.
+      var kebabBtn = document.createElement('button');
+      kebabBtn.className = 'icon-mini-btn';
+      kebabBtn.textContent = '⋯';
+      kebabBtn.title = 'Mais ações do parcelamento';
+      kebabBtn.style.marginLeft = '0';
+      kebabBtn.addEventListener('click', function(e){
+        e.stopPropagation();
+        showActionMenu(kebabBtn, [
+          {label:'Editar parcelamento', onClick:function(){ startEditCartao(c); }},
+          {label:'Excluir parcelamento', danger:true, onClick:function(){
+            var msg = quitado
+              ? 'Remover o parcelamento "'+c.nome+'"? Como ele já foi quitado, isso apaga o valor dele também dos meses passados onde já entrou na conta — o saldo desses meses muda.'
+              : 'Remover o parcelamento "'+c.nome+'"? Isso para de contar a parcela nos próximos meses.';
+            confirmAction(msg, function(){
+              deleteCartao(c.id);
+              if (state.editingCartaoId === c.id) cancelEditCartao();
+              showToast('Parcelamento removido.');
+            }, 'Remover');
+          }}
+        ]);
       });
-      actions.appendChild(delBtn);
-
-      card.appendChild(actions);
+      card.querySelector('.card-item-top').appendChild(kebabBtn);
       return card;
     }
 
