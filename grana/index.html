@@ -1621,14 +1621,14 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
       var remaining = c.parcelas - parcelaAtual;
 
       var statusText, statusColor = 'var(--muted)';
-      var showProgress = true;
+      var pct = Math.min(100, Math.max(0, (parcelaAtual/c.parcelas)*100));
       if (ativo) {
         statusColor = 'var(--expense)';
         if (remaining === 0) statusText = '⚠ última parcela: ' + fmt(valorParcela);
         else if (remaining === 1) statusText = 'penúltima parcela · falta mais 1 depois desta: ' + fmt(valorParcela);
         else statusText = 'parcela ' + parcelaAtual + '/' + c.parcelas + ' neste mês: ' + fmt(valorParcela);
       } else if (diff < 0) {
-        showProgress = false;
+        pct = 0;
         var monthsUntil = -diff;
         statusColor = 'var(--accent)';
         statusText = monthsUntil === 1 ? 'começa mês que vem' : 'começa em ' + monthsUntil + ' meses';
@@ -1645,7 +1645,7 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
           '<div class="card-item-meta">desde '+monthLabelStr(c.mesInicio)+' · '+c.parcelas+'x de '+fmt(valorParcela)+'</div></div>'+
         '</div>'+
         '<div class="card-item-parcela num" style="color:'+statusColor+';">'+statusText+'</div>'+
-        (showProgress ? '<div class="progress-track"><div class="progress-fill" style="width:'+Math.min(100, Math.max(0,(parcelaAtual/c.parcelas)*100))+'%"></div></div>' : '');
+        '<div class="progress-track"><div class="progress-fill" style="width:'+pct+'%"></div></div>';
 
       var actions = document.createElement('div');
       actions.className = 'card-item-actions';
@@ -1680,12 +1680,20 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
     // Quitados só aparecem no mês seguinte à última parcela (diff === parcelas) —
     // um aviso "acabou de quitar". Em qualquer mês depois disso ficam ocultos:
     // continuam contando no histórico, só não poluem mais a lista.
+    function rank(c){
+      var start = idToDate(c.mesInicio);
+      var cur = idToDate(mId);
+      var diff = (cur.getFullYear()-start.getFullYear())*12 + (cur.getMonth()-start.getMonth());
+      if (diff >= 0 && diff < c.parcelas) return 0; // ativo agora
+      if (diff === c.parcelas) return 1; // acabou de quitar
+      return 2; // ainda não começou
+    }
     var visible = state.cartao.filter(function(c){
       var start = idToDate(c.mesInicio);
       var cur = idToDate(mId);
       var diff = (cur.getFullYear()-start.getFullYear())*12 + (cur.getMonth()-start.getMonth());
       return diff <= c.parcelas;
-    });
+    }).sort(function(a,b){ return rank(a) - rank(b); });
 
     if (visible.length === 0) {
       list.innerHTML = '<div class="empty-hint">Nenhum parcelamento ativo ou futuro no momento.</div>';
