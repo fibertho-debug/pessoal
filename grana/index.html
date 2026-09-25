@@ -119,6 +119,9 @@ input,select{font-family:inherit;}
 .mini-stat.income .val{color:var(--income);}
 .mini-stat.expense .val{color:var(--expense);}
 .mini-stat.balance{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;}
+.mini-stats-3{grid-template-columns:1fr 1fr 1fr;}
+.mini-stats-3 .mini-stat{padding:10px 8px;}
+.mini-stats-3 .val{font-size:14px;}
 .mini-warn{font-size:11px;font-weight:700;color:var(--expense);background:var(--expense-bg);border-radius:8px;padding:4px 8px;}
 
 /* trend sparkline */
@@ -486,7 +489,7 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
           <div class="saldo-figure num" id="cartaoCommitmentValue" style="font-size:24px;color:var(--expense);">R$ 0,00</div>
           <div class="empty-hint" id="cartaoCommitmentMeta" style="padding:4px 0 8px;text-align:left;margin-top:2px;"></div>
           <div class="progress-track"><div class="progress-fill" id="cartaoCommitmentBar" style="background:var(--income);"></div></div>
-          <div class="mini-stats" style="margin-top:12px;grid-template-columns:1fr 1fr 1fr;">
+          <div class="mini-stats mini-stats-3" style="margin-top:12px;">
             <div class="mini-stat expense"><div class="lbl">Fatura deste mês</div><div class="val num" id="cartaoFaturaValue">R$ 0,00</div></div>
             <div class="mini-stat income"><div class="lbl">Já pago</div><div class="val num" id="cartaoPagoValue">R$ 0,00</div></div>
             <div class="mini-stat"><div class="lbl">Ativos + futuros</div><div class="val num" id="cartaoAtivosCount">0</div></div>
@@ -502,7 +505,7 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
           <div class="saldo-figure num" id="dividaCommitmentValue" style="font-size:24px;color:var(--expense);">R$ 0,00</div>
           <div class="empty-hint" id="dividaCommitmentMeta" style="padding:4px 0 8px;text-align:left;margin-top:2px;"></div>
           <div class="progress-track"><div class="progress-fill" id="dividaCommitmentBar" style="background:var(--income);"></div></div>
-          <div class="mini-stats" style="margin-top:12px;grid-template-columns:1fr 1fr 1fr;">
+          <div class="mini-stats mini-stats-3" style="margin-top:12px;">
             <div class="mini-stat expense"><div class="lbl">Parcela deste mês</div><div class="val num" id="dividaFaturaValue">R$ 0,00</div></div>
             <div class="mini-stat income"><div class="lbl">Já pago</div><div class="val num" id="dividaPagoValue">R$ 0,00</div></div>
             <div class="mini-stat"><div class="lbl">Ativos + futuros</div><div class="val num" id="dividaAtivosCount">0</div></div>
