@@ -1542,7 +1542,7 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
         input.step = '0.01';
         var current = data[it.id];
         var prev = prevMonthValue(it.id, mId);
-        if (current !== undefined) { input.value = current; }
+        if (current !== undefined) { input.value = current.toFixed(2); }
         else { input.value=''; if (prev !== null) input.placeholder = prev.toFixed(2).replace('.', ','); else input.placeholder = '0,00'; }
         input.addEventListener('input', function(){
           // Live feedback on every keystroke — the subtotal shouldn't wait for
@@ -1559,6 +1559,7 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
           data[it.id] = v;
           state.months[mId] = data;
           state.existingMonthIds[mId] = true;
+          input.value = v.toFixed(2);
           input.classList.remove('val-error');
           writeMonthField(mId, it.id, v, function(ok){
             // Visible, persistent feedback on failure — a toast alone fades in a
