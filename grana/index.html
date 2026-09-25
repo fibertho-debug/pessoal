@@ -66,6 +66,10 @@ input,select{font-family:inherit;}
   flex-shrink:0;
 }
 .icon-btn:active{transform:scale(.94);}
+.bell-dot{
+  position:absolute;top:5px;right:6px;width:7px;height:7px;border-radius:50%;
+  background:var(--expense);border:1.5px solid var(--surface-2);
+}
 
 /* summary card */
 .summary{
@@ -402,9 +406,19 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
       <div class="brand-name">Grana</div>
     </div>
     <div class="topbar-right">
+      <button id="bellBtn" class="icon-btn" title="Avisos" aria-label="Avisos" style="position:relative;">
+        🔔<span id="bellDot" class="bell-dot" hidden></span>
+      </button>
       <button id="settingsBtn" class="icon-btn" title="Ajustes" aria-label="Ajustes">⚙</button>
       <div id="syncDot" class="sync-dot off" title="Sincronizando..."></div>
     </div>
+  </div>
+
+  <div class="action-menu" id="bellPanel" hidden style="min-width:240px;padding:14px;">
+    <div style="font-family:'Fraunces',serif;font-size:15px;font-weight:600;margin-bottom:10px;">Avisos</div>
+    <div class="empty-hint" style="text-align:left;padding:0 0 4px;">Usando o Grana há <b id="bellDaysUsing" class="num">—</b></div>
+    <div class="empty-hint" style="text-align:left;padding:0 0 10px;" id="bellBackupLine">Último backup: —</div>
+    <button class="btn-primary" id="bellExportBtn" style="margin-top:0;">Exportar backup agora</button>
   </div>
 
   <div class="layout">
@@ -697,7 +711,8 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
     activeTab:'orcamento',
     orcamentoView:'extrato',
     hasCopyablePrev:false,
-    editingCartaoId:null
+    editingCartaoId:null,
+    meta:{createdAt:null, lastBackupAt:null}
   };
 
   var pendingRender = false;
@@ -745,6 +760,16 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
         };
       }
       scheduleRender();
+    }, function(){});
+
+    db.doc('meta/app').onSnapshot(function(snap){
+      if (snap.exists && snap.data()) {
+        state.meta = { createdAt: snap.data().createdAt || null, lastBackupAt: snap.data().lastBackupAt || null };
+      } else {
+        state.meta = { createdAt: new Date().toISOString(), lastBackupAt: null };
+        db.doc('meta/app').set(state.meta).catch(function(){});
+      }
+      updateBellUI();
     }, function(){});
 
     db.collection('months').onSnapshot(function(qs){
@@ -1048,6 +1073,37 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
     menu.style.top = top+'px'; menu.style.left = Math.max(8,left)+'px';
     setTimeout(function(){ document.addEventListener('click', closeActionMenuOutside, true); }, 0);
   }
+
+  function daysBetween(iso){
+    if (!iso) return null;
+    return Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86400000));
+  }
+
+  function updateBellUI(){
+    var daysUsing = daysBetween(state.meta.createdAt);
+    document.getElementById('bellDaysUsing').textContent = daysUsing === null ? '—' : (daysUsing === 0 ? 'hoje' : daysUsing + ' dia' + (daysUsing===1?'':'s'));
+    var backupDays = daysBetween(state.meta.lastBackupAt);
+    var backupLine = document.getElementById('bellBackupLine');
+    var overdue = backupDays === null || backupDays >= 30;
+    if (backupDays === null) backupLine.innerHTML = 'Último backup: <b style="color:var(--expense);">nunca feito</b>';
+    else backupLine.innerHTML = 'Último backup: ' + (overdue ? '<b style="color:var(--expense);">há ' + backupDays + ' dias</b>' : 'há ' + backupDays + ' dia' + (backupDays===1?'':'s'));
+    document.getElementById('bellDot').hidden = !overdue;
+  }
+
+  var bellBtn = document.getElementById('bellBtn');
+  var bellPanel = document.getElementById('bellPanel');
+  bellBtn.addEventListener('click', function(e){
+    e.stopPropagation();
+    if (!bellPanel.hidden) { bellPanel.hidden = true; return; }
+    var rect = bellBtn.getBoundingClientRect();
+    bellPanel.style.top = (rect.bottom + 6) + 'px';
+    bellPanel.style.left = Math.max(8, rect.right - 240) + 'px';
+    bellPanel.hidden = false;
+    updateBellUI();
+  });
+  document.addEventListener('click', function(e){
+    if (!bellPanel.hidden && !bellPanel.contains(e.target) && e.target !== bellBtn) bellPanel.hidden = true;
+  });
 
   function onEnter(inputId, btnId){
     document.getElementById(inputId).addEventListener('keydown', function(e){
@@ -1758,7 +1814,7 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
     else { el.hidden = true; }
   });
 
-  document.getElementById('exportBtn').addEventListener('click', function(){
+  function exportBackup(){
     try {
       var payload = {
         exportedAt: new Date().toISOString(),
@@ -1775,9 +1831,17 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
       showToast('Backup exportado.');
+      state.meta.lastBackupAt = new Date().toISOString();
+      if (state.db) state.db.doc('meta/app').set(state.meta).catch(function(){});
+      updateBellUI();
     } catch (e) {
       showToast('Não foi possível exportar agora.');
     }
+  }
+  document.getElementById('exportBtn').addEventListener('click', exportBackup);
+  document.getElementById('bellExportBtn').addEventListener('click', function(){
+    exportBackup();
+    document.getElementById('bellPanel').hidden = true;
   });
 
   function restoreBackup(parsed){
