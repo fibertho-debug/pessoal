@@ -1146,6 +1146,34 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
     render();
   });
 
+  // Swipe left/right to change month/year on mobile, mirroring the arrow-key
+  // shortcut above. Only fires on a clearly horizontal, deliberate swipe
+  // (bigger than vertical movement and past a minimum distance) so it never
+  // fights normal vertical scrolling.
+  (function(){
+    var touchStartX = null, touchStartY = null;
+    document.addEventListener('touchstart', function(e){
+      if (e.touches.length !== 1) { touchStartX = null; return; }
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    }, {passive:true});
+    document.addEventListener('touchend', function(e){
+      if (touchStartX === null) return;
+      var tag = document.activeElement && document.activeElement.tagName;
+      if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') { touchStartX = null; return; }
+      if (anyModalOpen()) { touchStartX = null; return; }
+      var touch = e.changedTouches[0];
+      var dx = touch.clientX - touchStartX;
+      var dy = touch.clientY - touchStartY;
+      touchStartX = null;
+      if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+      var delta = dx < 0 ? 1 : -1;
+      if (state.activeTab === 'resumo') { state.summaryYear += delta; }
+      else { state.currentMonth = shiftMonth(state.currentMonth, delta); }
+      render();
+    }, {passive:true});
+  })();
+
   var confirmCallback = null;
   function confirmAction(message, onConfirm, okLabel){
     document.getElementById('confirmMessage').textContent = message;
