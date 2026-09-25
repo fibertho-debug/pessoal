@@ -1206,13 +1206,26 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
     var acc = accumulatedUpTo(state.currentMonth);
     var accStart = accumulatedUpTo(shiftMonth(state.currentMonth, -1));
     var agg = monthAggregate(state.currentMonth);
-    document.getElementById('saldoStart').textContent = 'começou o mês com ' + (accStart.value < 0 ? '− ' : '') + fmt(accStart.value);
+    var beforeStart = state.currentMonth < state.wallet.mesInicial;
     var fig = document.getElementById('saldoFigure');
-    fig.textContent = fmtSigned(acc.value);
-    fig.style.color = acc.value < 0 ? 'var(--expense)' : 'var(--ink)';
     var tag = document.getElementById('saldoTag');
-    tag.textContent = acc.projected ? 'saldo previsto no fim do mês' : 'saldo no fim do mês';
-    tag.className = 'saldo-tag' + (acc.projected ? ' proj' : '');
+    if (beforeStart) {
+      // Before the wallet's configured starting month, accumulatedUpTo has
+      // nothing to accumulate from — it just returns the flat starting balance,
+      // which isn't this month's real saldo. Say so plainly instead of showing
+      // a number that looks like a real accumulated balance but isn't.
+      document.getElementById('saldoStart').textContent = '';
+      fig.textContent = '—';
+      fig.style.color = 'var(--muted)';
+      tag.textContent = 'fora do período de acompanhamento (carteira começa em ' + monthLabelStr(state.wallet.mesInicial) + ')';
+      tag.className = 'saldo-tag';
+    } else {
+      document.getElementById('saldoStart').textContent = 'começou o mês com ' + (accStart.value < 0 ? '− ' : '') + fmt(accStart.value);
+      fig.textContent = fmtSigned(acc.value);
+      fig.style.color = acc.value < 0 ? 'var(--expense)' : 'var(--ink)';
+      tag.textContent = acc.projected ? 'saldo previsto no fim do mês' : 'saldo no fim do mês';
+      tag.className = 'saldo-tag' + (acc.projected ? ' proj' : '');
+    }
     document.getElementById('totalReceitas').textContent = fmtSigned(agg.receita, 'income');
     document.getElementById('totalDespesas').textContent = fmtSigned(agg.despesa, 'expense');
     var saldoMesEl = document.getElementById('totalSaldoMes');
