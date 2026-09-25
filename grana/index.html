@@ -143,8 +143,9 @@ input,select{font-family:inherit;}
 .icon-mini-btn:hover{color:var(--accent);background:var(--surface-2);}
 .chev{color:var(--muted);transition:transform .18s ease;font-size:12px;margin-left:6px;}
 .group.open .chev{transform:rotate(180deg);}
-.group-body{display:none;border-top:1px solid var(--border);}
-.group.open .group-body{display:block;}
+.group-body{display:grid;grid-template-rows:0fr;transition:grid-template-rows .22s ease;}
+.group.open .group-body{grid-template-rows:1fr;}
+.group-body-inner{overflow:hidden;border-top:1px solid var(--border);min-height:0;}
 .item-row{
   display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--border);
 }
@@ -262,14 +263,19 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
 
 /* modals */
 .modal-overlay{
-  position:fixed;inset:0;background:rgba(15,20,18,.5);z-index:50;
+  position:fixed;inset:0;background:rgba(15,20,18,0);z-index:50;
   display:flex;align-items:flex-end;justify-content:center;
+  transition:background-color .2s ease;pointer-events:none;
 }
+.modal-overlay.show{background:rgba(15,20,18,.5);pointer-events:auto;}
 .modal-overlay[hidden]{display:none;}
 .modal-sheet{
   background:var(--bg);border-radius:20px 20px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom,0px));
   width:100%;max-width:520px;max-height:85vh;overflow-y:auto;
+  transform:translateY(28px);opacity:0;
+  transition:transform .22s cubic-bezier(.2,.8,.2,1), opacity .18s ease;
 }
+.modal-overlay.show .modal-sheet{transform:translateY(0);opacity:1;}
 .modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
 .modal-head h2{font-size:17px;}
 .modal-close{
@@ -335,8 +341,8 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
 .sidebar{display:none;}
 @media (min-width:860px){
   body{padding-bottom:32px;}
-  .wrap{max-width:1120px;}
-  .layout{display:grid;grid-template-columns:216px minmax(0,1fr);gap:26px;align-items:start;}
+  .wrap{max-width:1320px;}
+  .layout{display:grid;grid-template-columns:224px minmax(0,1fr);gap:30px;align-items:start;}
   .sidebar{
     display:flex;flex-direction:column;gap:4px;position:sticky;
     top:calc(78px + env(safe-area-inset-top,0px));
@@ -359,12 +365,16 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
   .modal-overlay{align-items:center;}
   .modal-sheet{border-radius:20px;}
 }
+
+@media (min-width:1500px){
+  .wrap{max-width:1480px;}
+}
 </style>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap">
 </head>
 <body>
 
-<div class="modal-overlay" id="authOverlay" style="align-items:center;">
+<div class="modal-overlay show" id="authOverlay" style="align-items:center;">
   <div class="modal-sheet" style="max-width:360px;">
     <div class="modal-head"><h2 style="font-family:'Fraunces',serif;">Grana</h2></div>
     <div id="authError" class="empty-hint" style="display:none;color:var(--expense);padding:0 0 10px;text-align:left;"></div>
@@ -923,13 +933,19 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
   function openModal(id){
     var el = document.getElementById(id);
     el.hidden = false;
+    void el.offsetWidth; // force reflow so the class change below actually transitions
+    el.classList.add('show');
     setTimeout(function(){
       if (id === 'confirmOverlay') { document.getElementById('confirmCancelBtn').focus(); return; }
       var focusable = el.querySelector('input, select');
       if (focusable) { focusable.focus(); if (focusable.select) focusable.select(); }
     }, 60);
   }
-  function closeModal(id){ document.getElementById(id).hidden = true; }
+  function closeModal(id){
+    var el = document.getElementById(id);
+    el.classList.remove('show');
+    setTimeout(function(){ el.hidden = true; }, 200);
+  }
   function anyModalOpen(){
     return MODAL_IDS.some(function(id){ return !document.getElementById(id).hidden; });
   }
@@ -1222,7 +1238,7 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
       div.appendChild(head);
 
       var body = document.createElement('div');
-      body.className = 'group-body';
+      body.className = 'group-body-inner';
 
       itemsToShow.forEach(function(it){
         var row = document.createElement('div');
@@ -1379,7 +1395,10 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
       addRow.appendChild(addBtn);
       body.appendChild(addRow);
 
-      div.appendChild(body);
+      var bodyWrap = document.createElement('div');
+      bodyWrap.className = 'group-body';
+      bodyWrap.appendChild(body);
+      div.appendChild(bodyWrap);
       host.appendChild(div);
     }
 
