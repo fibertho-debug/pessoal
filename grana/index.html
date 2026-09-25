@@ -5,22 +5,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Grana</title>
 <meta name="description" content="Controle financeiro pessoal">
-<meta name="theme-color" content="#0D1114">
+<meta name="theme-color" content="#111111">
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" href="/icon-192.png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
-  --bg:#0D1114;
-  --surface:#171B1E;
-  --surface-2:#1F2428;
+  --bg:#111111;
+  --surface:#1C1C1C;
+  --surface-2:#242424;
   --ink:#ECEEEC;
-  --muted:#9BA39D;
+  --muted:#9B9B9B;
   --border:rgba(236,238,236,.10);
-  --accent:#063147;
-  --accent-ink:#ECEEEC;
-  --accent-2:#169CDF;
+  --accent:#169CDF;
+  --accent-ink:#063147;
   --income:#3ECF8E;
   --income-bg:#173327;
   --expense:#F2764A;
@@ -94,12 +93,12 @@ input,select{font-family:inherit;}
 .month-label{font-size:15px;text-transform:capitalize;color:var(--muted);letter-spacing:.02em;}
 .month-center{display:flex;align-items:center;gap:6px;}
 .today-btn{
-  background:var(--surface-2);color:var(--accent-2);border:none;border-radius:7px;padding:4px 8px;
+  background:var(--surface-2);color:var(--accent);border:none;border-radius:7px;padding:4px 8px;
   font-size:10.5px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:.03em;flex-shrink:0;
 }
 .today-btn:hover{background:var(--accent);color:var(--accent-ink);}
 .pill-btn{
-  background:var(--surface-2);color:var(--accent-2);border:none;border-radius:7px;padding:5px 8px;
+  background:var(--surface-2);color:var(--accent);border:none;border-radius:7px;padding:5px 8px;
   font-size:10.5px;font-weight:700;cursor:pointer;letter-spacing:.03em;flex-shrink:0;
   display:flex;align-items:center;gap:4px;
 }
@@ -111,7 +110,7 @@ input,select{font-family:inherit;}
 .saldo-start{font-size:13px;color:var(--muted);margin-bottom:2px;}
 .saldo-figure{font-size:34px;line-height:1.05;}
 .saldo-tag{font-size:12px;color:var(--muted);margin-top:2px;}
-.saldo-tag.proj{color:var(--accent-2);}
+.saldo-tag.proj{color:var(--accent);}
 .mini-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;}
 .mini-stat{background:var(--surface-2);border-radius:14px;padding:10px 12px;min-width:0;overflow:hidden;}
 .mini-stat .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);overflow-wrap:break-word;}
@@ -156,7 +155,7 @@ input,select{font-family:inherit;}
   border:none;background:transparent;color:var(--muted);font-size:13px;cursor:pointer;
   margin-left:6px;padding:3px 5px;border-radius:6px;flex-shrink:0;
 }
-.icon-mini-btn:hover{color:var(--accent-2);background:var(--surface-2);}
+.icon-mini-btn:hover{color:var(--accent);background:var(--surface-2);}
 .chev{color:var(--muted);transition:transform .18s ease;font-size:12px;margin-left:6px;}
 .group.open .chev{transform:rotate(180deg);}
 .group-body{display:grid;grid-template-rows:0fr;transition:grid-template-rows .22s ease;}
@@ -175,11 +174,11 @@ input,select{font-family:inherit;}
 }
 .val-input::placeholder{color:var(--muted);opacity:.65;}
 .val-input.val-error{border-color:var(--expense);background:var(--expense-bg);}
-.val-input:focus{outline:2px solid var(--accent-2);outline-offset:1px;}
-.val-input.val-changed{border-color:var(--accent-2);}
+.val-input:focus{outline:2px solid var(--accent);outline-offset:1px;}
+.val-input.val-changed{border-color:var(--accent);}
 .change-dot{
   position:absolute;top:-4px;right:-4px;width:9px;height:9px;border-radius:50%;
-  background:var(--accent-2);border:2px solid var(--surface);cursor:help;
+  background:var(--accent);border:2px solid var(--surface);cursor:help;
 }
 .item-edit,.item-del{
   width:24px;height:24px;border-radius:8px;border:none;background:transparent;
@@ -187,7 +186,7 @@ input,select{font-family:inherit;}
 }
 .item-edit{color:var(--muted);}
 .item-del{color:var(--expense);opacity:.55;}
-.item-edit:hover{background:var(--surface-2);color:var(--accent-2);}
+.item-edit:hover{background:var(--surface-2);color:var(--accent);}
 .item-del:hover{background:var(--expense-bg);color:var(--expense);opacity:1;}
 .readonly-pill{
   font-size:12px;color:var(--muted);background:var(--surface-2);border-radius:10px;padding:8px 12px;width:122px;text-align:right;
@@ -197,7 +196,7 @@ input,select{font-family:inherit;}
   width:100%;border:1px dashed var(--border);background:transparent;color:var(--muted);
   border-radius:10px;padding:9px;font-size:13px;cursor:pointer;
 }
-.add-item-btn:hover{color:var(--accent-2);border-color:var(--accent-2);}
+.add-item-btn:hover{color:var(--accent);border-color:var(--accent);}
 
 .section-title{font-family:'Fraunces',Georgia,serif;font-size:15px;font-weight:600;color:var(--ink);margin:20px 2px 10px;}
 
@@ -210,7 +209,7 @@ input,select{font-family:inherit;}
 .card-item-meta{font-size:12px;color:var(--muted);margin-top:3px;}
 .card-item-parcela{font-size:16px;margin-top:8px;}
 .progress-track{height:6px;background:var(--surface-2);border-radius:4px;margin-top:10px;overflow:hidden;}
-.progress-fill{height:100%;background:var(--accent-2);border-radius:4px;}
+.progress-fill{height:100%;background:var(--accent);border-radius:4px;}
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
 .form-grid .full{grid-column:1 / -1;}
 label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);display:block;margin-bottom:4px;}
@@ -231,7 +230,7 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
 .btn-ghost{
   border:none;background:transparent;color:var(--muted);font-size:13px;cursor:pointer;padding:4px;
 }
-.btn-ghost:hover{color:var(--accent-2);}
+.btn-ghost:hover{color:var(--accent);}
 .empty-hint{font-size:13px;color:var(--muted);text-align:center;padding:24px 12px;}
 
 /* settings / ajustes */
@@ -270,7 +269,7 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
 .statement-name{font-size:13.5px;}
 .statement-group{color:var(--muted);font-size:11.5px;font-weight:400;}
 .onboard-hint{
-  grid-column:1/-1;background:var(--surface);border:1px dashed var(--accent-2);border-radius:16px;
+  grid-column:1/-1;background:var(--surface);border:1px dashed var(--accent);border-radius:16px;
   padding:14px 16px;font-size:13px;color:var(--ink);margin-bottom:12px;line-height:1.5;
 }
 .onboard-hint strong{font-family:'Fraunces',serif;}
@@ -341,7 +340,7 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
   color:var(--muted);font-size:11.5px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;
 }
 .tab-btn .ic{font-size:17px;}
-.tab-btn.active{color:var(--accent-2);background:var(--surface-2);}
+.tab-btn.active{color:var(--accent);background:var(--surface-2);}
 
 .tabpanel{display:none;}
 .tabpanel.active{display:block;}
@@ -1911,7 +1910,7 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
       } else if (diff < 0) {
         pct = 0;
         var monthsUntil = -diff;
-        statusColor = 'var(--accent-2)';
+        statusColor = 'var(--accent)';
         statusText = monthsUntil === 1 ? 'começa mês que vem' : 'começa em ' + monthsUntil + ' meses';
       } else {
         statusColor = 'var(--income)';
@@ -2072,7 +2071,7 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
       } else if (diff < 0) {
         pct = 0;
         var monthsUntil = -diff;
-        statusColor = 'var(--accent-2)';
+        statusColor = 'var(--accent)';
         statusText = monthsUntil === 1 ? 'começa mês que vem' : 'começa em ' + monthsUntil + ' meses';
       } else {
         statusColor = 'var(--income)';
