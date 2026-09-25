@@ -1788,7 +1788,10 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
     if (rows.length === 0) {
       body.innerHTML = '<div class="empty-hint">Nada lançado nesta seção ainda.</div>';
     } else {
-      rows.sort(function(a,b){ return b.value - a.value; }).forEach(function(r){
+      rows.sort(function(a,b){
+        if (a.group !== b.group) return a.group.localeCompare(b.group, 'pt-BR');
+        return b.value - a.value;
+      }).forEach(function(r){
         var row = document.createElement('div');
         row.className = 'statement-row';
         var nameDiv = document.createElement('div');
@@ -1820,6 +1823,8 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
     });
     var cartaoTotal = cartaoTotalForMonth(mId);
     if (cartaoTotal > 0) expenseRows.push({name:'Cartão de Crédito', group:'Dívidas e Financiamentos · automático', value: cartaoTotal, readonly:true});
+    var financiamentoTotal = financiamentoTotalForMonth(mId);
+    if (financiamentoTotal > 0) expenseRows.push({name:'Dívidas e financiamentos', group:'Dívidas e Financiamentos · automático', value: financiamentoTotal, readonly:true});
 
     host.appendChild(buildStatementCard('Receitas', 'income', incomeRows, mId, data));
     host.appendChild(buildStatementCard('Despesas', 'expense', expenseRows, mId, data));
