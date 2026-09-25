@@ -97,8 +97,9 @@ input,select{font-family:inherit;}
 .saldo-tag{font-size:12px;color:var(--muted);margin-top:2px;}
 .saldo-tag.proj{color:var(--accent);}
 .mini-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;}
-.mini-stat{background:var(--surface-2);border-radius:14px;padding:10px 12px;}
-.mini-stat .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);}
+.mini-stat{background:var(--surface-2);border-radius:14px;padding:10px 12px;min-width:0;overflow:hidden;}
+.mini-stat .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);overflow-wrap:break-word;}
+.mini-stat .val{overflow-wrap:break-word;}
 .mini-stat .val{font-size:17px;margin-top:2px;}
 .mini-stat.income .val{color:var(--income);}
 .mini-stat.expense .val{color:var(--expense);}
@@ -472,9 +473,9 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
   </div>
 </div>
 
-<button class="fab" id="quickAddBtn" title="Lançamento rápido" aria-label="Lançamento rápido">+</button>
+<button class="fab" id="quickAddBtn" title="Lançamento rápido" aria-label="Lançamento rápido" hidden>+</button>
 
-<div class="tabbar">
+<div class="tabbar" id="tabbarRoot" hidden>
   <div class="tabbar-inner">
     <button class="tab-btn" data-tab="resumo"><span class="ic">Σ</span>Resumo</button>
     <button class="tab-btn active" data-tab="orcamento"><span class="ic">▤</span>Orçamento</button>
@@ -2000,6 +2001,8 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
   function startApp(session){
     authOverlay.hidden = true;
     appRoot.hidden = false;
+    document.getElementById('quickAddBtn').hidden = false;
+    document.getElementById('tabbarRoot').hidden = false;
     window.GranaApp.boot(makeDb(session.user.id));
   }
 
