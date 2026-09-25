@@ -552,20 +552,26 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
       <button class="btn-primary" id="wSaveBtn">Salvar carteira</button>
       <div class="empty-hint" style="padding-top:10px;">Esse é o ponto de partida do saldo acumulado — o app soma o resultado de cada mês a partir daqui.</div>
     </div>
-    <div class="field-card">
-      <h3 style="font-family:'Fraunces',serif;">Novo grupo de categoria</h3>
-      <div class="form-grid">
-        <div class="full"><label>Nome do grupo</label><input class="form-input" id="gNome" placeholder="Ex: Pets"></div>
-        <div class="full">
-          <label>Tipo</label>
-          <select class="form-input" id="gTipo">
-            <option value="expense">Despesa</option>
-            <option value="income">Receita</option>
-          </select>
-        </div>
-      </div>
-      <button class="btn-primary" id="gAddBtn">Criar grupo</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="groupOverlay" hidden>
+  <div class="modal-sheet">
+    <div class="modal-head">
+      <h2 style="font-family:'Fraunces',serif;">Novo grupo de categoria</h2>
+      <button class="modal-close" id="groupCloseBtn" aria-label="Fechar">×</button>
     </div>
+    <div class="form-grid">
+      <div class="full"><label>Nome do grupo</label><input class="form-input" id="gNome" placeholder="Ex: Pets"></div>
+      <div class="full">
+        <label>Tipo</label>
+        <select class="form-input" id="gTipo">
+          <option value="expense">Despesa</option>
+          <option value="income">Receita</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn-primary" id="gAddBtn">Criar grupo</button>
   </div>
 </div>
 
@@ -969,7 +975,7 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
     toastTimer = setTimeout(function(){ el.hidden = true; }, 2600);
   }
 
-  var MODAL_IDS = ['confirmOverlay','promptOverlay','quickOverlay','settingsOverlay','cartaoOverlay'];
+  var MODAL_IDS = ['confirmOverlay','promptOverlay','quickOverlay','settingsOverlay','cartaoOverlay','groupOverlay'];
   function openModal(id){
     var el = document.getElementById(id);
     el.hidden = false;
@@ -1476,8 +1482,7 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
     function openNewGroup(type){
       document.getElementById('gTipo').value = type;
       document.getElementById('gNome').value = '';
-      openModal('settingsOverlay');
-      setTimeout(function(){ document.getElementById('gNome').focus(); }, 50);
+      openModal('groupOverlay');
     }
 
     function noGroupHint(label, type){
@@ -1932,8 +1937,12 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
     saveConfig();
     document.getElementById('gNome').value = '';
     showToast('Grupo criado.');
-    closeModal('settingsOverlay');
+    closeModal('groupOverlay');
     render();
+  });
+  document.getElementById('groupCloseBtn').addEventListener('click', function(){ closeModal('groupOverlay'); });
+  document.getElementById('groupOverlay').addEventListener('click', function(e){
+    if (e.target.id === 'groupOverlay') closeModal('groupOverlay');
   });
 
   document.getElementById('logoutBtn').addEventListener('click', function(){
