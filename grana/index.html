@@ -1284,10 +1284,22 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
     installBtn.hidden = false;
   });
   installBtn.addEventListener('click', function(){
-    if (!deferredInstallPrompt) return;
-    installBtn.hidden = true;
-    deferredInstallPrompt.prompt();
-    deferredInstallPrompt.userChoice.then(function(){ deferredInstallPrompt = null; });
+    if (!deferredInstallPrompt) { showToast('Instalação não disponível agora neste navegador.'); return; }
+    var promptEvent = deferredInstallPrompt;
+    deferredInstallPrompt = null;
+    try {
+      Promise.resolve(promptEvent.prompt()).then(function(){
+        return promptEvent.userChoice;
+      }).then(function(choice){
+        installBtn.hidden = (choice.outcome === 'accepted');
+      }).catch(function(){
+        installBtn.hidden = false;
+        showToast('Não foi possível abrir a instalação. Tente pelo menu do navegador.');
+      });
+    } catch (err) {
+      installBtn.hidden = false;
+      showToast('Não foi possível abrir a instalação. Tente pelo menu do navegador.');
+    }
   });
   window.addEventListener('appinstalled', function(){
     installBtn.hidden = true;
