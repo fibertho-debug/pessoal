@@ -426,6 +426,7 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
       <button class="tab-btn" data-tab="resumo"><span class="ic">Σ</span>Resumo anual</button>
       <button class="tab-btn active" data-tab="orcamento"><span class="ic">▤</span>Orçamento</button>
       <button class="tab-btn" data-tab="cartao"><span class="ic">◈</span>Cartão</button>
+      <button class="tab-btn" data-tab="dividas"><span class="ic">%</span>Dívidas</button>
     </nav>
 
     <div class="main-col">
@@ -473,6 +474,22 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
         <div id="cartaoList"></div>
       </div>
 
+      <div id="panelDividas" class="tabpanel">
+        <div class="field-card" id="dividaCommitmentCard" hidden>
+          <div class="lbl" style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:6px;">Compromisso de dívidas</div>
+          <div class="saldo-figure num" id="dividaCommitmentValue" style="font-size:24px;color:var(--expense);">R$ 0,00</div>
+          <div class="empty-hint" id="dividaCommitmentMeta" style="padding:4px 0 8px;text-align:left;margin-top:2px;"></div>
+          <div class="progress-track"><div class="progress-fill" id="dividaCommitmentBar" style="background:var(--income);"></div></div>
+          <div class="mini-stats" style="margin-top:12px;grid-template-columns:1fr 1fr 1fr;">
+            <div class="mini-stat expense"><div class="lbl">Parcela deste mês</div><div class="val num" id="dividaFaturaValue">R$ 0,00</div></div>
+            <div class="mini-stat income"><div class="lbl">Já pago</div><div class="val num" id="dividaPagoValue">R$ 0,00</div></div>
+            <div class="mini-stat"><div class="lbl">Ativos + futuros</div><div class="val num" id="dividaAtivosCount">0</div></div>
+          </div>
+        </div>
+        <div class="section-title">Dívidas e financiamentos ativos e futuros</div>
+        <div id="dividaList"></div>
+      </div>
+
       <div id="panelResumo" class="tabpanel">
         <div class="field-card">
           <div class="year-row">
@@ -512,6 +529,7 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
     <button class="tab-btn" data-tab="resumo"><span class="ic">Σ</span>Resumo</button>
     <button class="tab-btn active" data-tab="orcamento"><span class="ic">▤</span>Orçamento</button>
     <button class="tab-btn" data-tab="cartao"><span class="ic">◈</span>Cartão</button>
+    <button class="tab-btn" data-tab="dividas"><span class="ic">%</span>Dívidas</button>
   </div>
 </div>
 
@@ -603,6 +621,22 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
       <div class="full"><label>Primeira fatura</label><input class="form-input" id="cMesInicio" type="month"></div>
     </div>
     <button class="btn-primary" id="cAddBtn">Adicionar parcelamento</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="dividaOverlay" hidden>
+  <div class="modal-sheet">
+    <div class="modal-head">
+      <h2 style="font-family:'Fraunces',serif;" id="dividaFormTitle">Nova dívida/financiamento</h2>
+      <button class="modal-close" id="dividaCloseBtn" aria-label="Fechar">×</button>
+    </div>
+    <div class="form-grid">
+      <div class="full"><label>Descrição</label><input class="form-input" id="dNome" placeholder="Ex: Consignado"></div>
+      <div><label>Valor total (R$)</label><input class="form-input" id="dValor" type="number" inputmode="decimal" placeholder="0,00"></div>
+      <div><label>Parcelas</label><input class="form-input" id="dParcelas" type="number" inputmode="numeric" placeholder="1" value="1"></div>
+      <div class="full"><label>Primeira parcela</label><input class="form-input" id="dMesInicio" type="month"></div>
+    </div>
+    <button class="btn-primary" id="dAddBtn">Adicionar dívida</button>
   </div>
 </div>
 
@@ -718,6 +752,8 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
     orcamentoView:'extrato',
     hasCopyablePrev:false,
     editingCartaoId:null,
+    financiamentos:[],
+    editingFinanciamentoId:null,
     meta:{createdAt:null, lastBackupAt:null}
   };
 
@@ -804,6 +840,14 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
       state.cartao = list;
       scheduleRender();
     }, function(){});
+
+    db.collection('financiamentos').onSnapshot(function(qs){
+      var list = [];
+      qs.docs.forEach(function(doc){ list.push(Object.assign({id:doc.id}, doc.data())); });
+      list.sort(function(a,b){ return (a.mesInicio||'').localeCompare(b.mesInicio||''); });
+      state.financiamentos = list;
+      scheduleRender();
+    }, function(){});
   }
 
   // ---------- writes ----------
@@ -867,10 +911,23 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
     });
   }
 
+  function addFinanciamento(item){
+    if (!state.db) { showToast('Sem sincronização agora — a mudança pode não salvar.'); return; }
+    state.db.collection('financiamentos').doc(item.id).set(item).catch(function(){
+      showToast('Não foi possível salvar a dívida. Tente de novo.');
+    });
+  }
+  function deleteFinanciamento(id){
+    if (!state.db) { showToast('Sem sincronização agora — a mudança pode não salvar.'); return; }
+    state.db.collection('financiamentos').doc(id).delete().catch(function(){
+      showToast('Não foi possível remover. Tente de novo.');
+    });
+  }
+
   // ---------- computed ----------
-  function cartaoTotalForMonth(mId){
+  function parcelamentoTotalForMonth(list, mId){
     var total = 0;
-    state.cartao.forEach(function(c){
+    list.forEach(function(c){
       if (!c.mesInicio || !c.parcelas) return;
       var start = idToDate(c.mesInicio);
       var cur = idToDate(mId);
@@ -881,6 +938,8 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
     });
     return total;
   }
+  function cartaoTotalForMonth(mId){ return parcelamentoTotalForMonth(state.cartao, mId); }
+  function financiamentoTotalForMonth(mId){ return parcelamentoTotalForMonth(state.financiamentos, mId); }
 
   function monthAggregate(mId){
     var data = state.months[mId] || {};
@@ -892,6 +951,7 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
       });
     });
     despesa += cartaoTotalForMonth(mId);
+    despesa += financiamentoTotalForMonth(mId);
     return {receita:receita, despesa:despesa, saldoMes: receita-despesa};
   }
 
@@ -959,6 +1019,10 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
           var ct = cartaoTotalForMonth(mId);
           sub += ct; despesa += ct;
         }
+        if (g.id === 'dividas') {
+          var ft = financiamentoTotalForMonth(mId);
+          sub += ft; despesa += ft;
+        }
         byGroup[g.id] = (byGroup[g.id]||0) + sub;
       });
     }
@@ -975,7 +1039,7 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
     toastTimer = setTimeout(function(){ el.hidden = true; }, 2600);
   }
 
-  var MODAL_IDS = ['confirmOverlay','promptOverlay','quickOverlay','settingsOverlay','cartaoOverlay','groupOverlay'];
+  var MODAL_IDS = ['confirmOverlay','promptOverlay','quickOverlay','settingsOverlay','cartaoOverlay','groupOverlay','dividaOverlay'];
   function openModal(id){
     var el = document.getElementById(id);
     el.hidden = false;
@@ -1000,6 +1064,7 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
     if (confirmCallback) confirmCallback = null;
     if (promptCallback) promptCallback = null;
     if (!document.getElementById('cartaoOverlay').hidden) { cancelEditCartao(); return; }
+    if (!document.getElementById('dividaOverlay').hidden) { cancelEditDivida(); return; }
     MODAL_IDS.forEach(function(id){ if (!document.getElementById(id).hidden) closeModal(id); });
   });
   document.addEventListener('keydown', function(e){
@@ -1154,6 +1219,7 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
     var subtotal = 0;
     g.items.forEach(function(it){ subtotal += (data[it.id]||0); });
     if (g.id === 'outros') subtotal += cartaoTotalForMonth(mId);
+    if (g.id === 'dividas') subtotal += financiamentoTotalForMonth(mId);
     el.textContent = fmtSigned(subtotal, g.type);
   }
 
@@ -1162,6 +1228,7 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
     renderSummaryCard();
     renderOrcamento();
     renderCartao();
+    renderDividas();
     renderResumo();
   }
 
@@ -1257,8 +1324,13 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
       var subtotal = 0;
       g.items.forEach(function(it){ subtotal += (data[it.id]||0); });
       if (g.id === 'outros') subtotal += cartaoTotalForMonth(mId);
+      if (g.id === 'dividas') subtotal += financiamentoTotalForMonth(mId);
 
-      var itemsToShow = g.items;
+      // Items marked hidden (e.g. legacy manual fields replaced by an automatic
+      // parcelamento total) keep contributing to past months' totals above —
+      // config-driven aggregation only sums items still in the group — but stop
+      // showing as an editable row so nothing competes with the automatic value.
+      var itemsToShow = g.items.filter(function(it){ return !it.hidden; });
 
       var div = document.createElement('div');
       div.className = 'group' + (g.type==='income' ? ' income-group' : ' expense-group') + (state.openGroups[g.id] ? ' open' : '');
@@ -1267,7 +1339,7 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
       head.className = 'group-head';
       head.innerHTML =
         '<div class="group-head-left"><div class="group-title">'+esc(g.name)+'</div>'+
-        '<div class="group-sub">'+(g.type==='income'?'Receita':'Despesa')+' · '+g.items.length+' itens</div></div>'+
+        '<div class="group-sub">'+(g.type==='income'?'Receita':'Despesa')+' · '+itemsToShow.length+' itens</div></div>'+
         '<div class="group-right">'+
         '<div class="group-total '+g.type+'" data-group-id="'+esc(g.id)+'">'+fmtSigned(subtotal, g.type)+'</div>'+
         '<div class="chev">▾</div></div>';
@@ -1295,6 +1367,10 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
         if (g.id === 'outros') {
           actions.push({label:'Excluir grupo', danger:true, onClick:function(){
             showToast('Esse grupo é especial: é onde o Cartão de Crédito aparece no orçamento. Não pode ser excluído.');
+          }});
+        } else if (g.id === 'dividas') {
+          actions.push({label:'Excluir grupo', danger:true, onClick:function(){
+            showToast('Esse grupo é especial: é onde as dívidas e financiamentos automáticos aparecem. Não pode ser excluído.');
           }});
         } else {
           actions.push({label:'Excluir grupo', danger:true, onClick:function(){
@@ -1454,6 +1530,16 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
         pill.textContent = fmt(cartaoTotalForMonth(mId));
         cRow.appendChild(pill);
         body.appendChild(cRow);
+      }
+      if (g.id === 'dividas') {
+        var fRow = document.createElement('div');
+        fRow.className = 'item-row';
+        fRow.innerHTML = '<div class="item-name">Dívidas e financiamentos <span style="color:var(--muted);font-size:11px;">(automático · aba Dívidas)</span></div>';
+        var fPill = document.createElement('div');
+        fPill.className = 'readonly-pill';
+        fPill.textContent = fmt(financiamentoTotalForMonth(mId));
+        fRow.appendChild(fPill);
+        body.appendChild(fRow);
       }
 
       var addRow = document.createElement('div');
@@ -1730,6 +1816,154 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
     toggleCartaoForm(false);
   }
 
+  function renderDividasCommitment(mId){
+    var card = document.getElementById('dividaCommitmentCard');
+    var restante = 0, geral = 0, lastMonth = null, ativos = 0;
+    state.financiamentos.forEach(function(c){
+      if (!c.mesInicio || !c.parcelas) return;
+      var start = idToDate(c.mesInicio);
+      var cur = idToDate(mId);
+      var diff = (cur.getFullYear()-start.getFullYear())*12 + (cur.getMonth()-start.getMonth());
+      var valorParcela = (c.valorTotal||0)/(c.parcelas||1);
+      var remaining = diff < 0 ? c.parcelas : (c.parcelas - diff);
+      geral += c.valorTotal || 0;
+      if (remaining <= 0) return;
+      ativos++;
+      restante += remaining * valorParcela;
+      var endMonth = shiftMonth(c.mesInicio, c.parcelas - 1);
+      if (!lastMonth || endMonth > lastMonth) lastMonth = endMonth;
+    });
+    if (restante <= 0) { card.hidden = true; return; }
+    card.hidden = false;
+    var pago = Math.max(0, geral - restante);
+    var pct = geral > 0 ? Math.min(100, (pago/geral)*100) : 0;
+    document.getElementById('dividaCommitmentValue').textContent = fmt(restante);
+    document.getElementById('dividaCommitmentMeta').textContent = 'a partir de ' + monthLabelStr(mId) + ' · quita em ' + monthLabelStr(lastMonth);
+    document.getElementById('dividaCommitmentBar').style.width = pct + '%';
+    document.getElementById('dividaFaturaValue').textContent = fmt(financiamentoTotalForMonth(mId));
+    document.getElementById('dividaPagoValue').textContent = fmt(pago);
+    document.getElementById('dividaAtivosCount').textContent = ativos;
+  }
+
+  function renderDividas(){
+    var list = document.getElementById('dividaList');
+    list.innerHTML = '';
+    var mId = state.currentMonth;
+    renderDividasCommitment(mId);
+    if (state.financiamentos.length === 0) {
+      list.innerHTML = '<div class="empty-hint">Nenhuma dívida ou financiamento cadastrado ainda.<br>Toque no <b>+</b> no canto da tela para adicionar.</div>';
+      return;
+    }
+    function buildCard(c){
+      var start = idToDate(c.mesInicio);
+      var cur = idToDate(mId);
+      var diff = (cur.getFullYear()-start.getFullYear())*12 + (cur.getMonth()-start.getMonth());
+      var parcelaAtual = Math.min(Math.max(diff+1, 0), c.parcelas);
+      var ativo = diff >= 0 && diff < c.parcelas;
+      var quitado = diff >= c.parcelas;
+      var valorParcela = (c.valorTotal||0)/(c.parcelas||1);
+      var remaining = c.parcelas - parcelaAtual;
+
+      var statusText, statusColor = 'var(--muted)';
+      var pct = Math.min(100, Math.max(0, (parcelaAtual/c.parcelas)*100));
+      if (ativo) {
+        statusColor = 'var(--expense)';
+        if (remaining === 0) statusText = '⚠ última parcela: ' + fmt(valorParcela);
+        else if (remaining === 1) statusText = 'penúltima parcela · falta mais 1 depois desta: ' + fmt(valorParcela);
+        else statusText = 'parcela ' + parcelaAtual + '/' + c.parcelas + ' neste mês: ' + fmt(valorParcela);
+      } else if (diff < 0) {
+        pct = 0;
+        var monthsUntil = -diff;
+        statusColor = 'var(--accent)';
+        statusText = monthsUntil === 1 ? 'começa mês que vem' : 'começa em ' + monthsUntil + ' meses';
+      } else {
+        statusColor = 'var(--income)';
+        statusText = '✓ quitado';
+      }
+
+      var card = document.createElement('div');
+      card.className = 'card-item';
+      card.innerHTML =
+        '<div class="card-item-top">'+
+          '<div><div class="card-item-name">'+esc(c.nome)+'</div>'+
+          '<div class="card-item-meta">desde '+monthLabelStr(c.mesInicio)+' · '+c.parcelas+'x de '+fmt(valorParcela)+'</div></div>'+
+        '</div>'+
+        '<div class="card-item-parcela num" style="color:'+statusColor+';">'+statusText+'</div>'+
+        '<div class="progress-track"><div class="progress-fill" style="width:'+pct+'%"></div></div>';
+
+      var kebabBtn = document.createElement('button');
+      kebabBtn.className = 'icon-mini-btn';
+      kebabBtn.textContent = '⋯';
+      kebabBtn.title = 'Mais ações da dívida';
+      kebabBtn.style.marginLeft = '0';
+      kebabBtn.addEventListener('click', function(e){
+        e.stopPropagation();
+        showActionMenu(kebabBtn, [
+          {label:'Editar dívida', onClick:function(){ startEditDivida(c); }},
+          {label:'Excluir dívida', danger:true, onClick:function(){
+            var msg = quitado
+              ? 'Remover a dívida "'+c.nome+'"? Como ela já foi quitada, isso apaga o valor dela também dos meses passados onde já entrou na conta — o saldo desses meses muda.'
+              : 'Remover a dívida "'+c.nome+'"? Isso para de contar a parcela nos próximos meses.';
+            confirmAction(msg, function(){
+              deleteFinanciamento(c.id);
+              if (state.editingFinanciamentoId === c.id) cancelEditDivida();
+              showToast('Dívida removida.');
+            }, 'Remover');
+          }}
+        ]);
+      });
+      card.querySelector('.card-item-top').appendChild(kebabBtn);
+      return card;
+    }
+
+    function rank(c){
+      var start = idToDate(c.mesInicio);
+      var cur = idToDate(mId);
+      var diff = (cur.getFullYear()-start.getFullYear())*12 + (cur.getMonth()-start.getMonth());
+      if (diff >= 0 && diff < c.parcelas) return 0;
+      if (diff === c.parcelas) return 1;
+      return 2;
+    }
+    var visible = state.financiamentos.filter(function(c){
+      var start = idToDate(c.mesInicio);
+      var cur = idToDate(mId);
+      var diff = (cur.getFullYear()-start.getFullYear())*12 + (cur.getMonth()-start.getMonth());
+      return diff <= c.parcelas;
+    }).sort(function(a,b){ return rank(a) - rank(b); });
+
+    if (visible.length === 0) {
+      list.innerHTML = '<div class="empty-hint">Nenhuma dívida ativa ou futura no momento.</div>';
+    } else {
+      visible.forEach(function(c){ list.appendChild(buildCard(c)); });
+    }
+  }
+
+  function toggleDividaForm(open){
+    if (open) { openModal('dividaOverlay'); } else { closeModal('dividaOverlay'); }
+  }
+
+  function startEditDivida(c){
+    state.editingFinanciamentoId = c.id;
+    document.getElementById('dNome').value = c.nome;
+    document.getElementById('dValor').value = c.valorTotal;
+    document.getElementById('dParcelas').value = c.parcelas;
+    document.getElementById('dMesInicio').value = c.mesInicio;
+    document.getElementById('dividaFormTitle').textContent = 'Editar dívida';
+    document.getElementById('dAddBtn').textContent = 'Salvar alterações';
+    toggleDividaForm(true);
+  }
+
+  function cancelEditDivida(){
+    state.editingFinanciamentoId = null;
+    document.getElementById('dNome').value = '';
+    document.getElementById('dValor').value = '';
+    document.getElementById('dParcelas').value = '1';
+    document.getElementById('dMesInicio').value = '';
+    document.getElementById('dividaFormTitle').textContent = 'Nova dívida/financiamento';
+    document.getElementById('dAddBtn').textContent = 'Adicionar dívida';
+    toggleDividaForm(false);
+  }
+
   function renderResumo(){
     document.getElementById('yearLabel').textContent = state.summaryYear;
     document.getElementById('currentYearBtn').hidden = state.summaryYear === new Date().getFullYear();
@@ -1789,11 +2023,12 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
       });
       document.getElementById('panelOrcamento').classList.toggle('active', tabName==='orcamento');
       document.getElementById('panelCartao').classList.toggle('active', tabName==='cartao');
+      document.getElementById('panelDividas').classList.toggle('active', tabName==='dividas');
       document.getElementById('panelResumo').classList.toggle('active', tabName==='resumo');
       document.getElementById('copyPrevIconBtn').hidden = !(state.hasCopyablePrev && tabName === 'orcamento');
       var fab = document.getElementById('quickAddBtn');
       fab.hidden = tabName === 'resumo';
-      fab.title = tabName === 'cartao' ? 'Novo parcelamento' : 'Lançamento rápido';
+      fab.title = tabName === 'cartao' ? 'Novo parcelamento' : (tabName === 'dividas' ? 'Nova dívida' : 'Lançamento rápido');
       window.scrollTo({top:0, behavior:'smooth'});
     });
   });
@@ -1903,6 +2138,10 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
   document.getElementById('cartaoOverlay').addEventListener('click', function(e){
     if (e.target.id === 'cartaoOverlay') cancelEditCartao();
   });
+  document.getElementById('dividaCloseBtn').addEventListener('click', cancelEditDivida);
+  document.getElementById('dividaOverlay').addEventListener('click', function(e){
+    if (e.target.id === 'dividaOverlay') cancelEditDivida();
+  });
 
   document.getElementById('cAddBtn').addEventListener('click', function(){
     var nome = document.getElementById('cNome').value.trim();
@@ -1914,6 +2153,18 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
     addCartao({id: id, nome: nome, valorTotal: valor, parcelas: parcelas, mesInicio: mesInicio});
     showToast(state.editingCartaoId ? 'Parcelamento atualizado.' : 'Parcelamento adicionado.');
     cancelEditCartao();
+  });
+
+  document.getElementById('dAddBtn').addEventListener('click', function(){
+    var nome = document.getElementById('dNome').value.trim();
+    var valor = parseFloat(document.getElementById('dValor').value.replace(',', '.'));
+    var parcelas = parseInt(document.getElementById('dParcelas').value, 10);
+    var mesInicio = document.getElementById('dMesInicio').value;
+    if (!nome || !valor || !parcelas || !mesInicio) { showToast('Preencha descrição, valor, parcelas e mês.'); return; }
+    var id = state.editingFinanciamentoId || uid();
+    addFinanciamento({id: id, nome: nome, valorTotal: valor, parcelas: parcelas, mesInicio: mesInicio});
+    showToast(state.editingFinanciamentoId ? 'Dívida atualizada.' : 'Dívida adicionada.');
+    cancelEditDivida();
   });
 
   document.getElementById('wSaveBtn').addEventListener('click', function(){
@@ -1956,6 +2207,7 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
   onEnter('wSaldo','wSaveBtn'); onEnter('wReceber','wSaveBtn'); onEnter('wPagar','wSaveBtn'); onEnter('wMes','wSaveBtn');
   onEnter('gNome','gAddBtn');
   onEnter('cNome','cAddBtn'); onEnter('cValor','cAddBtn'); onEnter('cParcelas','cAddBtn'); onEnter('cMesInicio','cAddBtn');
+  onEnter('dNome','dAddBtn'); onEnter('dValor','dAddBtn'); onEnter('dParcelas','dAddBtn'); onEnter('dMesInicio','dAddBtn');
 
   // ---------- quick-add modal ----------
   function populateQuickGroups(){
@@ -1975,7 +2227,7 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
     var sel = document.getElementById('qItem');
     sel.innerHTML = '';
     if (g) {
-      g.items.forEach(function(it){
+      g.items.filter(function(it){ return !it.hidden; }).forEach(function(it){
         var opt = document.createElement('option');
         opt.value = it.id; opt.textContent = it.name;
         sel.appendChild(opt);
@@ -1991,6 +2243,11 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
     if (state.activeTab === 'cartao') {
       cancelEditCartao();
       toggleCartaoForm(true);
+      return;
+    }
+    if (state.activeTab === 'dividas') {
+      cancelEditDivida();
+      toggleDividaForm(true);
       return;
     }
     populateQuickGroups();
