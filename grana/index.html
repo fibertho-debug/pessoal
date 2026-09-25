@@ -1278,6 +1278,13 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
     });
   }
 
+  function formatMoneyOnBlur(inputId){
+    document.getElementById(inputId).addEventListener('blur', function(e){
+      var v = parseFloat(e.target.value.replace(',', '.'));
+      if (!isNaN(v)) e.target.value = v.toFixed(2);
+    });
+  }
+
   // ---------- render ----------
   // Pure text/SVG updates to the top summary card — never touches panelOrcamento,
   // so it's always safe to call even while the user is mid-edit in a value input.
@@ -1958,7 +1965,7 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
   function startEditCartao(c){
     state.editingCartaoId = c.id;
     document.getElementById('cNome').value = c.nome;
-    document.getElementById('cValor').value = c.valorTotal;
+    document.getElementById('cValor').value = c.valorTotal.toFixed(2);
     document.getElementById('cParcelas').value = c.parcelas;
     document.getElementById('cMesInicio').value = c.mesInicio;
     document.getElementById('cartaoFormTitle').textContent = 'Editar parcelamento';
@@ -2114,7 +2121,7 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
   function startEditDivida(c){
     state.editingFinanciamentoId = c.id;
     document.getElementById('dNome').value = c.nome;
-    document.getElementById('dValor').value = c.valorTotal;
+    document.getElementById('dValor').value = c.valorTotal.toFixed(2);
     document.getElementById('dParcelas').value = c.parcelas;
     document.getElementById('dMesInicio').value = c.mesInicio;
     document.getElementById('dividaFormTitle').textContent = 'Editar dívida';
@@ -2405,6 +2412,7 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
   onEnter('gNome','gAddBtn');
   onEnter('cNome','cAddBtn'); onEnter('cValor','cAddBtn'); onEnter('cParcelas','cAddBtn'); onEnter('cMesInicio','cAddBtn');
   onEnter('dNome','dAddBtn'); onEnter('dValor','dAddBtn'); onEnter('dParcelas','dAddBtn'); onEnter('dMesInicio','dAddBtn');
+  formatMoneyOnBlur('cValor'); formatMoneyOnBlur('dValor'); formatMoneyOnBlur('qValor');
 
   // ---------- quick-add modal ----------
   function populateQuickGroups(){
