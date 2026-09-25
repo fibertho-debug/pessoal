@@ -1013,6 +1013,36 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
     return g.items.some(function(it){ return itemHasHistory(it.id); });
   }
 
+  // Swaps g with its same-type neighbor (direction -1/+1) by position in the
+  // underlying array, not by adjacent index — income and expense groups are
+  // interleaved in state.config.groups but rendered as two separate lists, so
+  // "up"/"down" has to mean "within its own list".
+  function moveGroup(g, direction){
+    var sameType = state.config.groups.filter(function(x){ return x.type === g.type && !x.hidden; });
+    var pos = sameType.indexOf(g);
+    var swapWith = sameType[pos + direction];
+    if (!swapWith) return;
+    var i1 = state.config.groups.indexOf(g);
+    var i2 = state.config.groups.indexOf(swapWith);
+    state.config.groups[i1] = swapWith;
+    state.config.groups[i2] = g;
+    saveConfig();
+    render();
+  }
+
+  function moveItem(g, it, direction){
+    var visible = g.items.filter(function(x){ return !x.hidden; });
+    var pos = visible.indexOf(it);
+    var swapWith = visible[pos + direction];
+    if (!swapWith) return;
+    var i1 = g.items.indexOf(it);
+    var i2 = g.items.indexOf(swapWith);
+    g.items[i1] = swapWith;
+    g.items[i2] = it;
+    saveConfig();
+    render();
+  }
+
   function renderYoyCompare(agg){
     var el = document.getElementById('yoyCompare');
     var lastYearId = shiftMonth(state.currentMonth, -12);
@@ -1393,14 +1423,21 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
       kebabBtn.title = 'Mais ações do grupo';
       kebabBtn.addEventListener('click', function(e){
         e.stopPropagation();
-        var actions = [
-          {label:'Renomear grupo', onClick:function(){
-            showPrompt('Renomear grupo', 'Nome', g.name, function(val){
-              if (!val || !val.trim()) return;
-              g.name = val.trim(); saveConfig(); render();
-            });
-          }}
-        ];
+        var sameType = state.config.groups.filter(function(x){ return x.type === g.type && !x.hidden; });
+        var pos = sameType.indexOf(g);
+        var actions = [];
+        if (pos > 0) {
+          actions.push({label:'Mover para cima', onClick:function(){ moveGroup(g, -1); }});
+        }
+        if (pos < sameType.length - 1) {
+          actions.push({label:'Mover para baixo', onClick:function(){ moveGroup(g, 1); }});
+        }
+        actions.push({label:'Renomear grupo', onClick:function(){
+          showPrompt('Renomear grupo', 'Nome', g.name, function(val){
+            if (!val || !val.trim()) return;
+            g.name = val.trim(); saveConfig(); render();
+          });
+        }});
         if (g.id === 'dividas') {
           actions.push({label:'Excluir grupo', danger:true, onClick:function(){
             showToast('Esse grupo é especial: é onde o Cartão de Crédito e as dívidas/financiamentos automáticos aparecem. Não pode ser excluído.');
@@ -1536,22 +1573,27 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
         row.appendChild(editBtn);
 
         var otherGroups = state.config.groups.filter(function(x){ return x.id !== g.id && !x.hidden; });
-        if (otherGroups.length) {
+        if (otherGroups.length || itemsToShow.length > 1) {
           var moveBtn = document.createElement('button');
           moveBtn.className = 'item-edit';
           moveBtn.textContent = '⇄';
-          moveBtn.title = 'Mover item para outra categoria';
+          moveBtn.title = 'Mover item';
           moveBtn.addEventListener('click', function(e){
             e.stopPropagation();
-            showActionMenu(moveBtn, otherGroups.map(function(target){
-              return {label: (target.type==='income'?'↑ ':'↓ ') + target.name, onClick:function(){
+            var pos = itemsToShow.indexOf(it);
+            var menuActions = [];
+            if (pos > 0) menuActions.push({label:'Mover para cima', onClick:function(){ moveItem(g, it, -1); }});
+            if (pos < itemsToShow.length - 1) menuActions.push({label:'Mover para baixo', onClick:function(){ moveItem(g, it, 1); }});
+            otherGroups.forEach(function(target){
+              menuActions.push({label:'Mover para "'+target.name+'"', onClick:function(){
                 g.items = g.items.filter(function(x){ return x.id !== it.id; });
                 target.items.push(it);
                 saveConfig();
                 render();
                 showToast('"'+it.name+'" movido para "'+target.name+'".');
-              }};
-            }));
+              }});
+            });
+            showActionMenu(moveBtn, menuActions);
           });
           row.appendChild(moveBtn);
         }
@@ -1722,7 +1764,7 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
       });
     });
     var cartaoTotal = cartaoTotalForMonth(mId);
-    if (cartaoTotal > 0) expenseRows.push({name:'Cartão de Crédito', group:'Outros · automático', value: cartaoTotal, readonly:true});
+    if (cartaoTotal > 0) expenseRows.push({name:'Cartão de Crédito', group:'Dívidas e Financiamentos · automático', value: cartaoTotal, readonly:true});
 
     host.appendChild(buildStatementCard('Receitas', 'income', incomeRows, mId, data));
     host.appendChild(buildStatementCard('Despesas', 'expense', expenseRows, mId, data));
