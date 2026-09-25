@@ -638,8 +638,15 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
       <button class="modal-close" id="dividaCloseBtn" aria-label="Fechar">×</button>
     </div>
     <div class="form-grid">
+      <div class="full">
+        <label>Você sabe...</label>
+        <div class="view-toggle" style="margin-bottom:0;">
+          <button type="button" class="view-toggle-btn active" id="dModoTotal">Valor total</button>
+          <button type="button" class="view-toggle-btn" id="dModoParcela">Valor da parcela</button>
+        </div>
+      </div>
       <div class="full"><label>Descrição</label><input class="form-input" id="dNome" placeholder="Ex: Consignado"></div>
-      <div><label>Valor total (R$)</label><input class="form-input" id="dValor" type="number" inputmode="decimal" placeholder="0,00"></div>
+      <div><label id="dValorLabel">Valor total (R$)</label><input class="form-input" id="dValor" type="number" inputmode="decimal" placeholder="0,00"></div>
       <div><label>Parcelas</label><input class="form-input" id="dParcelas" type="number" inputmode="numeric" placeholder="1" value="1"></div>
       <div class="full"><label>Primeira parcela</label><input class="form-input" id="dMesInicio" type="month"></div>
     </div>
@@ -2003,6 +2010,12 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
     if (open) { openModal('dividaOverlay'); } else { closeModal('dividaOverlay'); }
   }
 
+  function resetDividaModo(){
+    document.getElementById('dModoTotal').classList.add('active');
+    document.getElementById('dModoParcela').classList.remove('active');
+    document.getElementById('dValorLabel').textContent = 'Valor total (R$)';
+  }
+
   function startEditDivida(c){
     state.editingFinanciamentoId = c.id;
     document.getElementById('dNome').value = c.nome;
@@ -2011,6 +2024,7 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
     document.getElementById('dMesInicio').value = c.mesInicio;
     document.getElementById('dividaFormTitle').textContent = 'Editar dívida';
     document.getElementById('dAddBtn').textContent = 'Salvar alterações';
+    resetDividaModo();
     toggleDividaForm(true);
   }
 
@@ -2022,6 +2036,7 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
     document.getElementById('dMesInicio').value = '';
     document.getElementById('dividaFormTitle').textContent = 'Nova dívida/financiamento';
     document.getElementById('dAddBtn').textContent = 'Adicionar dívida';
+    resetDividaModo();
     toggleDividaForm(false);
   }
 
@@ -2216,14 +2231,27 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
     cancelEditCartao();
   });
 
+  document.getElementById('dModoTotal').addEventListener('click', function(){
+    document.getElementById('dModoTotal').classList.add('active');
+    document.getElementById('dModoParcela').classList.remove('active');
+    document.getElementById('dValorLabel').textContent = 'Valor total (R$)';
+  });
+  document.getElementById('dModoParcela').addEventListener('click', function(){
+    document.getElementById('dModoParcela').classList.add('active');
+    document.getElementById('dModoTotal').classList.remove('active');
+    document.getElementById('dValorLabel').textContent = 'Valor da parcela (R$)';
+  });
+
   document.getElementById('dAddBtn').addEventListener('click', function(){
     var nome = document.getElementById('dNome').value.trim();
-    var valor = parseFloat(document.getElementById('dValor').value.replace(',', '.'));
+    var valorInformado = parseFloat(document.getElementById('dValor').value.replace(',', '.'));
     var parcelas = parseInt(document.getElementById('dParcelas').value, 10);
     var mesInicio = document.getElementById('dMesInicio').value;
-    if (!nome || !valor || !parcelas || !mesInicio) { showToast('Preencha descrição, valor, parcelas e mês.'); return; }
+    if (!nome || !valorInformado || !parcelas || !mesInicio) { showToast('Preencha descrição, valor, parcelas e mês.'); return; }
+    var porParcela = document.getElementById('dModoParcela').classList.contains('active');
+    var valorTotal = porParcela ? valorInformado * parcelas : valorInformado;
     var id = state.editingFinanciamentoId || uid();
-    addFinanciamento({id: id, nome: nome, valorTotal: valor, parcelas: parcelas, mesInicio: mesInicio});
+    addFinanciamento({id: id, nome: nome, valorTotal: valorTotal, parcelas: parcelas, mesInicio: mesInicio});
     showToast(state.editingFinanciamentoId ? 'Dívida atualizada.' : 'Dívida adicionada.');
     cancelEditDivida();
   });
