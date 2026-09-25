@@ -1468,6 +1468,19 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
         }
         row.appendChild(valWrap);
 
+        if (current === undefined && prev !== null) {
+          var copyBtn = document.createElement('button');
+          copyBtn.className = 'item-edit';
+          copyBtn.textContent = '↺';
+          copyBtn.title = 'Copiar ' + fmt(prev) + ' do mês passado';
+          copyBtn.addEventListener('click', function(){
+            input.value = prev;
+            input.dispatchEvent(new Event('input', {bubbles:true}));
+            input.dispatchEvent(new Event('change', {bubbles:true}));
+          });
+          row.appendChild(copyBtn);
+        }
+
         var editBtn = document.createElement('button');
         editBtn.className = 'item-edit';
         editBtn.textContent = '✎';
