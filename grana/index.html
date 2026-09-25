@@ -195,7 +195,7 @@ input,select{font-family:inherit;}
 .card-item-parcela{font-size:16px;margin-top:8px;}
 .progress-track{height:6px;background:var(--surface-2);border-radius:4px;margin-top:10px;overflow:hidden;}
 .progress-fill{height:100%;background:var(--accent);border-radius:4px;}
-.card-item-actions{display:flex;gap:14px;margin-top:8px;}
+.card-item-actions{display:flex;gap:6px;margin-top:8px;}
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
 .form-grid .full{grid-column:1 / -1;}
 label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);display:block;margin-bottom:4px;}
@@ -213,10 +213,9 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
   font-size:14px;font-weight:600;cursor:pointer;width:100%;
 }
 .btn-danger{background:var(--expense);color:#fff;}
-.btn-ghost-del,.btn-ghost{
+.btn-ghost{
   border:none;background:transparent;color:var(--muted);font-size:13px;cursor:pointer;padding:4px;
 }
-.btn-ghost-del:hover{color:var(--expense);}
 .btn-ghost:hover{color:var(--accent);}
 .empty-hint{font-size:13px;color:var(--muted);text-align:center;padding:24px 12px;}
 
@@ -1596,14 +1595,16 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
       actions.className = 'card-item-actions';
 
       var editBtn = document.createElement('button');
-      editBtn.className = 'btn-ghost';
-      editBtn.textContent = 'editar';
+      editBtn.className = 'item-edit';
+      editBtn.textContent = '✎';
+      editBtn.title = 'Editar parcelamento';
       editBtn.addEventListener('click', function(){ startEditCartao(c); });
       actions.appendChild(editBtn);
 
       var delBtn = document.createElement('button');
-      delBtn.className = 'btn-ghost-del';
-      delBtn.textContent = 'remover';
+      delBtn.className = 'item-del';
+      delBtn.textContent = '×';
+      delBtn.title = 'Remover parcelamento';
       delBtn.addEventListener('click', function(){
         var msg = quitado
           ? 'Remover o parcelamento "'+c.nome+'"? Como ele já foi quitado, isso apaga o valor dele também dos meses passados onde já entrou na conta — o saldo desses meses muda.'
