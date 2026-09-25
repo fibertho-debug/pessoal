@@ -1391,10 +1391,20 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
           actions.push({label:'Excluir grupo', danger:true, onClick:function(){
             var hasHistory = groupHasHistory(g);
             var msg = hasHistory
-              ? 'Excluir o grupo "'+g.name+'" e os '+g.items.length+' itens dele? Valores já lançados em meses anteriores não são apagados, só deixam de aparecer.'
+              ? 'Excluir o grupo "'+g.name+'" e os '+g.items.length+' itens dele? Os valores já lançados em meses anteriores continuam contando no saldo desses meses, só que como "'+g.name+' (não categorizado)" no extrato, em vez de sumirem sem explicação.'
               : 'Excluir o grupo "'+g.name+'" e os '+g.items.length+' itens dele? Nenhum valor foi lançado neles ainda.';
             confirmAction(msg, function(){
-              state.config.groups = state.config.groups.filter(function(x){ return x.id !== g.id; });
+              if (hasHistory) {
+                // Same reasoning as deleting a single item: aggregation only sums
+                // groups/items still in config, so actually removing the group
+                // would silently drop its contribution from every past month's
+                // total. Renaming + hiding keeps history correct and honest.
+                g.name = g.name + ' (não categorizado)';
+                g.hidden = true;
+                g.items.forEach(function(it){ it.hidden = true; });
+              } else {
+                state.config.groups = state.config.groups.filter(function(x){ return x.id !== g.id; });
+              }
               saveConfig(); render();
             }, 'Excluir');
           }});
@@ -1507,7 +1517,7 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
         });
         row.appendChild(editBtn);
 
-        var otherGroups = state.config.groups.filter(function(x){ return x.id !== g.id; });
+        var otherGroups = state.config.groups.filter(function(x){ return x.id !== g.id && !x.hidden; });
         if (otherGroups.length) {
           var moveBtn = document.createElement('button');
           moveBtn.className = 'item-edit';
@@ -1631,8 +1641,8 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
       host.appendChild(row);
     }
 
-    var incomeGroups = state.config.groups.filter(function(g){ return g.type === 'income'; });
-    var expenseGroups = state.config.groups.filter(function(g){ return g.type !== 'income'; });
+    var incomeGroups = state.config.groups.filter(function(g){ return g.type === 'income' && !g.hidden; });
+    var expenseGroups = state.config.groups.filter(function(g){ return g.type !== 'income' && !g.hidden; });
 
     var incLabel = document.createElement('div');
     incLabel.className = 'section-divider income';
@@ -2251,7 +2261,7 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
   function populateQuickGroups(){
     var sel = document.getElementById('qGroup');
     sel.innerHTML = '';
-    state.config.groups.forEach(function(g){
+    state.config.groups.filter(function(g){ return !g.hidden; }).forEach(function(g){
       var opt = document.createElement('option');
       opt.value = g.id; opt.textContent = (g.type==='income'?'↑ ':'↓ ') + g.name;
       opt.style.color = g.type === 'income' ? 'var(--income)' : 'var(--expense)';
