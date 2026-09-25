@@ -1036,13 +1036,10 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
           sub += v;
           if (g.type === 'income') receita += v; else despesa += v;
         });
-        if (g.id === 'outros') {
-          var ct = cartaoTotalForMonth(mId);
-          sub += ct; despesa += ct;
-        }
         if (g.id === 'dividas') {
+          var ct = cartaoTotalForMonth(mId);
           var ft = financiamentoTotalForMonth(mId);
-          sub += ft; despesa += ft;
+          sub += ct + ft; despesa += ct + ft;
         }
         byGroup[g.id] = (byGroup[g.id]||0) + sub;
       });
@@ -1260,8 +1257,7 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
     var data = state.months[mId] || {};
     var subtotal = 0;
     g.items.forEach(function(it){ subtotal += (data[it.id]||0); });
-    if (g.id === 'outros') subtotal += cartaoTotalForMonth(mId);
-    if (g.id === 'dividas') subtotal += financiamentoTotalForMonth(mId);
+    if (g.id === 'dividas') subtotal += cartaoTotalForMonth(mId) + financiamentoTotalForMonth(mId);
     el.textContent = fmtSigned(subtotal, g.type);
   }
 
@@ -1365,8 +1361,7 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
     function renderGroup(g){
       var subtotal = 0;
       g.items.forEach(function(it){ subtotal += (data[it.id]||0); });
-      if (g.id === 'outros') subtotal += cartaoTotalForMonth(mId);
-      if (g.id === 'dividas') subtotal += financiamentoTotalForMonth(mId);
+      if (g.id === 'dividas') subtotal += cartaoTotalForMonth(mId) + financiamentoTotalForMonth(mId);
 
       // Items marked hidden (e.g. legacy manual fields replaced by an automatic
       // parcelamento total) keep contributing to past months' totals above —
@@ -1406,13 +1401,9 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
             });
           }}
         ];
-        if (g.id === 'outros') {
+        if (g.id === 'dividas') {
           actions.push({label:'Excluir grupo', danger:true, onClick:function(){
-            showToast('Esse grupo é especial: é onde o Cartão de Crédito aparece no orçamento. Não pode ser excluído.');
-          }});
-        } else if (g.id === 'dividas') {
-          actions.push({label:'Excluir grupo', danger:true, onClick:function(){
-            showToast('Esse grupo é especial: é onde as dívidas e financiamentos automáticos aparecem. Não pode ser excluído.');
+            showToast('Esse grupo é especial: é onde o Cartão de Crédito e as dívidas/financiamentos automáticos aparecem. Não pode ser excluído.');
           }});
         } else {
           actions.push({label:'Excluir grupo', danger:true, onClick:function(){
@@ -1596,17 +1587,16 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
         body.appendChild(row);
       });
 
-      if (g.id === 'outros') {
+      if (g.id === 'dividas') {
         var cRow = document.createElement('div');
         cRow.className = 'item-row';
-        cRow.innerHTML = '<div class="item-name">Cartão de Crédito <span style="color:var(--muted);font-size:11px;">(automático)</span></div>';
+        cRow.innerHTML = '<div class="item-name">Cartão de Crédito <span style="color:var(--muted);font-size:11px;">(automático · aba Cartão)</span></div>';
         var pill = document.createElement('div');
         pill.className = 'readonly-pill';
         pill.textContent = fmt(cartaoTotalForMonth(mId));
         cRow.appendChild(pill);
         body.appendChild(cRow);
-      }
-      if (g.id === 'dividas') {
+
         var fRow = document.createElement('div');
         fRow.className = 'item-row';
         fRow.innerHTML = '<div class="item-name">Dívidas e financiamentos <span style="color:var(--muted);font-size:11px;">(automático · aba Dívidas)</span></div>';
