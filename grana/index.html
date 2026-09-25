@@ -49,6 +49,13 @@ input,select{font-family:inherit;}
   display:flex;align-items:center;gap:8px;
 }
 .brand{display:flex;align-items:center;gap:8px;}
+.mini-summary-bar{
+  position:sticky;top:env(safe-area-inset-top,0px);z-index:19;background:var(--bg);
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:9px 2px;border-bottom:1px solid var(--border);font-size:14px;font-weight:600;
+}
+.mini-summary-bar[hidden]{display:none;}
+.mini-summary-bar #miniSummaryMonth{color:var(--muted);font-weight:500;font-size:13px;text-transform:capitalize;}
 .brand-mark{
   width:30px;height:30px;border-radius:9px;background:var(--accent);color:var(--accent-ink);
   display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-weight:700;font-size:16px;
@@ -416,6 +423,11 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
       <button id="settingsBtn" class="icon-btn" title="Ajustes" aria-label="Ajustes">⚙</button>
       <div id="syncDot" class="sync-dot off" title="Sincronizando..."></div>
     </div>
+  </div>
+
+  <div class="mini-summary-bar" id="miniSummaryBar" hidden>
+    <span id="miniSummaryMonth" class="num"></span>
+    <span id="miniSummarySaldo" class="num"></span>
   </div>
 
   <div class="action-menu" id="bellPanel" hidden style="min-width:240px;padding:14px;">
@@ -1276,6 +1288,12 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
     renderYoyCompare(agg);
     renderTrend();
     renderCopyPrev();
+
+    document.getElementById('miniSummaryMonth').textContent = monthLabelStr(state.currentMonth);
+    var miniSaldo = document.getElementById('miniSummarySaldo');
+    miniSaldo.textContent = beforeStart ? '—' : fmtSigned(acc.value);
+    miniSaldo.style.color = beforeStart ? 'var(--muted)' : (acc.value < 0 ? 'var(--expense)' : 'var(--ink)');
+
     return agg;
   }
 
@@ -2441,6 +2459,23 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--m
     commitQuickEntry(g, itemId, valor);
   });
   onEnter('qValor','qSaveBtn');
+
+  // ---------- mini summary bar (sticky, shows once the full card scrolls away) ----------
+  (function(){
+    var bar = document.getElementById('miniSummaryBar');
+    var topbarEl = document.querySelector('.topbar');
+    function placeBar(){
+      bar.style.top = 'calc(env(safe-area-inset-top,0px) + ' + topbarEl.offsetHeight + 'px)';
+    }
+    placeBar();
+    window.addEventListener('resize', placeBar);
+    var summaryEl = document.querySelector('.summary');
+    if ('IntersectionObserver' in window && summaryEl) {
+      new IntersectionObserver(function(entries){
+        bar.hidden = entries[0].isIntersecting;
+      }, {rootMargin: '-' + (topbarEl.offsetHeight + 4) + 'px 0px 0px 0px'}).observe(summaryEl);
+    }
+  })();
 
   render();
   window.GranaApp = { boot: boot };
